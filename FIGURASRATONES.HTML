@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Ratones y Figuras - Versión Pro</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background-color: #A2D2FF;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .contenedor {
+            background: #FEFAE0;
+            padding: 25px;
+            border-radius: 30px;
+            border: 6px solid white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            width: 900px;
+            text-align: center;
+        }
+
+        .zona {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            min-height: 160px;
+        }
+
+        /* SOMBRAS */
+        .sombra {
+            width: 140px;
+            height: 140px;
+            background-color: #E0E0E0;
+            border: 3px dashed #B0B0B0;
+            border-radius: 20px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            /* El truco: permitimos que el evento pase aunque haya imagen */
+            pointer-events: auto; 
+        }
+
+        .sombra img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: grayscale(1) brightness(0.5);
+            opacity: 0.3;
+            pointer-events: none; /* Esto evita que la imagen gris bloquee el drop */
+        }
+
+        .sombra.logrado img {
+            filter: none;
+            opacity: 1;
+        }
+
+        .sombra.logrado {
+            background-color: white;
+            border: 3px solid #58D68D;
+        }
+
+        /* PIEZAS */
+        .pieza {
+            width: 120px;
+            height: 120px;
+            background-color: white;
+            border-radius: 50%;
+            cursor: grab;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 2px solid #EEE;
+        }
+
+        .pieza img {
+            width: 90%;
+            height: 90%;
+            object-fit: contain;
+            pointer-events: none; /* Importante para que no interfiera con el drag */
+        }
+
+        #mensaje {
+            height: 40px;
+            font-size: 1.8rem;
+            color: #D62828;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background: #FB8500;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="contenedor">
+        <h1>¡Esconde a los ratones!</h1>
+        <div id="mensaje"></div>
+        
+        <div class="zona" id="tablero"></div>
+        <div class="zona" id="inventario"></div>
+        
+        <button onclick="iniciar()">¡Nuevas Figuras!</button>
+    </div>
+
+    <script>
+        const imagenes = [
+            "https://i.postimg.cc/Z0xj8DZz/Captura-de-pantalla-2026-04-07-173745.png",
+            "https://i.postimg.cc/7GyM7SWr/Captura-de-pantalla-2026-04-07-173806.png",
+            "https://i.postimg.cc/vDhLggLB/Captura-de-pantalla-2026-04-07-173815.png",
+            "https://i.postimg.cc/K16nSnF5/Captura-de-pantalla-2026-04-07-173826.png",
+            "https://i.postimg.cc/jwFxmhYn/Captura-de-pantalla-2026-04-07-173834.png",
+            "https://i.postimg.cc/V00f8bz0/Captura-de-pantalla-2026-04-07-173841.png",
+            "https://i.postimg.cc/9wwmhqcq/Captura-de-pantalla-2026-04-07-173857.png",
+            "https://i.postimg.cc/rRRVktqr/Captura-de-pantalla-2026-04-07-173905.png",
+            "https://i.postimg.cc/py5RyztL/Captura-de-pantalla-2026-04-07-173913.png",
+            "https://i.postimg.cc/NL2BLmw8/Captura-de-pantalla-2026-04-07-173920.png",
+            "https://i.postimg.cc/Hj8djXCt/Captura-de-pantalla-2026-04-07-173928.png",
+            "https://i.postimg.cc/QVKhV1rJ/Captura-de-pantalla-2026-04-07-173937.png",
+            "https://i.postimg.cc/V50m5ncR/Captura-de-pantalla-2026-04-07-173945.png",
+            "https://i.postimg.cc/F1kN13QT/Captura-de-pantalla-2026-04-07-173954.png",
+            "https://i.postimg.cc/56c1zyxw/Captura-de-pantalla-2026-04-07-174003.png",
+            "https://i.postimg.cc/bsX8nrzx/Captura-de-pantalla-2026-04-07-174011.png",
+            "https://i.postimg.cc/6yswZq9V/Captura-de-pantalla-2026-04-07-174019.png",
+            "https://i.postimg.cc/rK6c4s8J/Captura-de-pantalla-2026-04-07-174027.png",
+            "https://i.postimg.cc/PPGhDJty/Captura-de-pantalla-2026-04-07-174037.png",
+            "https://i.postimg.cc/ykqBRxVn/Captura-de-pantalla-2026-04-07-174045.png",
+            "https://i.postimg.cc/svFyWxV6/Captura-de-pantalla-2026-04-12-142039.png",
+            "https://i.postimg.cc/9r3V90WN/Captura-de-pantalla-2026-04-12-142047.png",
+            "https://i.postimg.cc/D8VFG02N/Captura-de-pantalla-2026-04-12-142054.png",
+            "https://i.postimg.cc/XpM35qVm/Captura-de-pantalla-2026-04-12-142103.png",
+            "https://i.postimg.cc/bsX8nrz4/Captura-de-pantalla-2026-04-12-142112.png"
+        ];
+
+        let aciertos = 0;
+
+        function iniciar() {
+            aciertos = 0;
+            document.getElementById('mensaje').innerText = "";
+            const tablero = document.getElementById('tablero');
+            const inventario = document.getElementById('inventario');
+            
+            tablero.innerHTML = "";
+            inventario.innerHTML = "";
+
+            let elegidas = [...imagenes].sort(() => 0.5 - Math.random()).slice(0, 5);
+
+            elegidas.forEach((url, index) => {
+                let s = document.createElement('div');
+                s.className = 'sombra';
+                s.dataset.url = url;
+                s.innerHTML = `<img src="${url}">`;
+                s.ondragover = e => e.preventDefault();
+                s.ondrop = drop;
+                tablero.appendChild(s);
+            });
+
+            let piezas = [...elegidas].sort(() => 0.5 - Math.random());
+            piezas.forEach((url, index) => {
+                let p = document.createElement('div');
+                p.className = 'pieza';
+                p.draggable = true;
+                p.id = "pieza-" + index; // ID simple
+                p.dataset.url = url;
+                p.innerHTML = `<img src="${url}">`;
+                p.ondragstart = e => e.dataTransfer.setData("text/plain", e.target.id);
+                inventario.appendChild(p);
+            });
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            const idPieza = e.dataTransfer.getData("text/plain");
+            const elPieza = document.getElementById(idPieza);
+            
+            if (!elPieza) return; // Seguridad
+
+            const urlPieza = elPieza.dataset.url;
+            const urlSombra = this.dataset.url;
+
+            if (urlPieza === urlSombra) {
+                this.classList.add('logrado');
+                elPieza.style.visibility = "hidden";
+                aciertos++;
+                if (aciertos === 5) {
+                    document.getElementById('mensaje').innerText = "¡ERES GENIAL! 🐭✨";
+                }
+            }
+        }
+
+        window.onload = iniciar;
+    </script>
+</body>
+</html>
